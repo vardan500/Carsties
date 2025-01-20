@@ -5,6 +5,8 @@ using Npgsql;
 using AutoMapper;
 using AuctionService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Polly;
+using AuctionService.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,13 @@ builder.Services.AddMassTransit(x =>
 
     x.UsingRabbitMq((context, cfg) =>
     {
+
+        cfg.UseRetry(r =>
+        {
+            r.Handle<RabbitMqConnectionException>();
+            r.Interval(5, TimeSpan.FromSeconds(10));
+        });
+
         cfg.Host(builder.Configuration["RabbitMq:Host"], "/", h =>
         {
             h.Username(builder.Configuration.GetValue("RabbitMQ:Username", "guest")!);
@@ -60,13 +69,10 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-try
-{
-    DbInitializer.InitDb(app);
-}
-catch (Exception ex)
-{
-    Console.WriteLine(ex);
-}
+var retryPolicy = Policy
+    .Handle<NpgsqlException>()
+    .WaitAndRetry(5, retryAttempt => TimeSpan.FromSeconds(5));
+
+retryPolicy.ExecuteAndCapture(() => DbInitializer.InitDb(app));
 
 app.Run();

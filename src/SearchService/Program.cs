@@ -37,9 +37,9 @@ builder.Services.AddMassTransit(x =>
             e.ConfigureConsumer<AuctionCreatedConsumer>(context);
         });
 
-    });
+        cfg.ConfigureEndpoints(context);
 
-    //AuctionUpdated
+    });
 
 });
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
@@ -54,14 +54,10 @@ app.MapControllers();
 
 app.Lifetime.ApplicationStarted.Register(async () =>
 {
-    try
-    {
-        await DbInitializer.InitDb(app);
-    }
-    catch (Exception e)
-    {
-        Console.WriteLine(e);
-    }
+
+    await Policy.Handle<TimeoutException>()
+        .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(10))
+        .ExecuteAndCaptureAsync(async () => await DbInitializer.InitDb(app));
 });
 
 await DB.InitAsync("SearchDb", MongoClientSettings.FromConnectionString(builder.Configuration.GetConnectionString("MongoDbConnection")));

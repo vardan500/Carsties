@@ -27,8 +27,8 @@ public class AuctionUpdatedConsumer : IConsumer<AuctionUpdated>
            .ModifyOnly(b => new { b.Make, b.Model, b.Year, b.Color, b.Mileage }, item)
            .ExecuteAsync();
 
-        if (!result.IsAcknowledged)
-            throw new MessageException(typeof(AuctionUpdated), "Problem updating mongodb");
+        // if (!result.IsAcknowledged)
+        //     throw new MessageException(typeof(AuctionUpdated), "Problem updating mongodb");
 
     }
 }
