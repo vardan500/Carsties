@@ -3,7 +3,7 @@ using Contracts;
 using MassTransit;
 using MongoDB.Entities;
 
-namespace SearchService;
+namespace SearchService.Consumers;
 
 public class AuctionCreatedConsumer : IConsumer<AuctionCreated>
 {
